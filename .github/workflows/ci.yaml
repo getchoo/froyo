@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@91a071959513ca103b54280ac0bef5b825791d4d # v31
+
+      - name: Run tests
+        run: |
+          nix build \
+            --file release.nix \
+            --no-link \
+            --print-build-logs \
+            --print-out-paths \
+            --show-trace >> "$GITHUB_STEP_SUMMARY"
