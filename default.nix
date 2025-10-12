@@ -1,17 +1,53 @@
+let
+  class = "froyo";
+in
+
 {
-  sources ? import ./npins,
+  inputs ? import ./npins,
   lib ? import (
-    sources.nixpkgs
-      or (throw "cores: could not find `nixpkgs` in `sources.` Please pass `lib` manually")
+    inputs.nixpkgs
+      or (throw "${class}: could not find `nixpkgs` in `inputs.` Please pass `lib` manually")
     + "/lib"
   ),
-  specialArgs ? { },
 }:
 
 let
-  coresLib = import ./lib.nix { inherit lib; };
+  ioWithExtend =
+    eval:
+
+    assert lib.assertMsg (
+      eval.class == class
+    ) "ioWithExtend: evaluated configuration is not of class '${class}'";
+
+    (
+      if eval.config.debug then
+        eval
+      else
+        {
+          inherit (eval.config) inputs outputs;
+        }
+    )
+    // {
+      extend = module: ioWithExtend (eval.extendModules { modules = [ module ]; });
+    };
 in
 
 module:
 
-coresLib.mkCores { inherit module specialArgs sources; }
+ioWithExtend (
+  lib.evalModules {
+    inherit class;
+    modules = [
+      ./modules
+      module
+
+      (
+        { lib, ... }:
+
+        {
+          inputs = lib.mkDefault inputs;
+        }
+      )
+    ];
+  }
+)

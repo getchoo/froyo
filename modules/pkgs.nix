@@ -1,22 +1,35 @@
-{ config, lib, ... }:
-
 {
-  options.pkgs = lib.mkOption {
-    type = lib.types.nullOr (lib.types.lazyAttrsOf lib.types.raw);
-    default =
-      if (config.sources ? "nixpkgs") then
-        import config.sources.nixpkgs {
-          config = { };
-          overlays = [ ];
-        }
-      else
-        null;
-    defaultText = "if (sources has nixpkgs) import sources.nixpkgs { ... } else null";
-    description = "The instance of `nixpkgs` to pass as a module argument.";
-    example = lib.literalExpression "import <nixpkgs> { config = { allowUnfree = true; }; }";
-  };
+  perTarget =
+    {
+      config,
+      lib,
+      inputs,
+      ...
+    }:
 
-  config = {
-    _module.args = { inherit (config) pkgs; };
-  };
+    let
+      pkgs = import inputs.nixpkgs {
+        localSystem = config.target.buildPlatform;
+        crossSystem = config.target.hostPlatform;
+
+        config = { };
+        overlays = [ ];
+      };
+
+    in
+
+    {
+      config = lib.mkIf (inputs ? "nixpkgs") {
+        _module.args.pkgs = lib.mkDefault (
+          # Flake input support
+          if
+            inputs.nixpkgs ? "legacyPackages"
+            && lib.systems.equals config.target.buildPlatform config.target.hostPlatform
+          then
+            inputs.nixpkgs.legacyPackages.${config.target.hostPlatform.system} or pkgs
+          else
+            pkgs
+        );
+      };
+    };
 }

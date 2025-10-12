@@ -1,16 +1,23 @@
 {
-  pkgs ? import <nixpkgs> {
+  pkgs ? import nixpkgs {
     config = { };
     overlays = [ ];
   },
+  nixpkgs ? (import ./npins).nixpkgs,
 }:
 
+let
+  inherit (pkgs) lib;
+in
+
 pkgs.mkShellNoCC {
-  packages = builtins.attrValues {
+  packages = lib.attrValues {
     inherit (pkgs)
+      actionlint
       deadnix
-      nixfmt-rfc-style
+      nixfmt
       npins
+      reuse
       statix
       ;
   };

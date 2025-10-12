@@ -1,10 +1,6 @@
-let
-  sources = import ./npins;
-in
-
 # Dogfood the library
-import ./default.nix { inherit sources; } (
-  { lib, pkgs, ... }:
+import ./default.nix { } (
+  { config, lib, ... }:
 
   let
     src = lib.fileset.toSource {
@@ -12,15 +8,14 @@ import ./default.nix { inherit sources; } (
       fileset = lib.fileset.gitTracked ./.;
     };
 
-    # Check a minimal example
-    basicTest = import ./default.nix { inherit sources; } {
+    minimal = import ./default.nix { } {
       outputs = {
         foo = "bar";
       };
     };
 
     # Make sure extending outputs works
-    extendedTest = basicTest.extendCores (
+    extended = minimal.extend (
       { lib, ... }:
 
       {
@@ -29,28 +24,47 @@ import ./default.nix { inherit sources; } (
     );
   in
 
-  assert basicTest.foo == "bar";
-  assert extendedTest.foo == "baz";
+  assert minimal.outputs.foo == "bar";
+  assert extended.outputs.foo == "baz";
 
   {
-    outputs = {
-      deadnix = pkgs.runCommand "check-deadnix" { nativeBuildInputs = [ pkgs.deadnix ]; } ''
-        deadnix --exclude ${src}/npins/default.nix --fail ${src}
-        touch $out
-      '';
+    perTarget =
+      { pkgs, name, ... }:
 
-      nixfmt = pkgs.runCommand "check-nixfmt" { nativeBuildInputs = [ pkgs.nixfmt-rfc-style ]; } ''
-        nixfmt --check ${src}/**.nix
-        touch $out
-      '';
+      {
+        outputs = {
+          actionlint = pkgs.runCommand "check-actionlint" { nativeBuildInputs = [ pkgs.actionlint ]; } ''
+            find ${src}/.github/workflows -type f -exec actionlint {} +
+            touch $out
+          '';
 
-      statix = pkgs.runCommand "check-statix" { nativeBuildInputs = [ pkgs.statix ]; } ''
-        statix check --ignore 'npins/default.nix' ${src}
-        touch $out
-      '';
+          deadnix = pkgs.runCommand "check-deadnix" { nativeBuildInputs = [ pkgs.deadnix ]; } ''
+            deadnix --exclude ${src}/npins/default.nix --fail ${src}
+            touch $out
+          '';
 
-      # Make sure our demo works too
-      demo-hello = ((import ./demo/default.nix).extendCores { inherit sources; }).hello;
-    };
+          nixfmt = pkgs.runCommand "check-nixfmt" { nativeBuildInputs = [ pkgs.nixfmt ]; } ''
+            nixfmt --check ${src}/**.nix
+            touch $out
+          '';
+
+          reuse = pkgs.runCommand "check-reuse" { nativeBuildInputs = [ pkgs.reuse ]; } ''
+            cd ${src} && reuse lint
+            touch $out
+          '';
+
+          statix = pkgs.runCommand "check-statix" { nativeBuildInputs = [ pkgs.statix ]; } ''
+            statix check --ignore 'npins/default.nix' ${src}
+            touch $out
+          '';
+
+          # Make sure our example works too
+          example-hello =
+            ((import ./example/default.nix).extend { inherit (config) inputs; })
+            .outputs.perTarget.${name}.hello;
+
+          shell = import ./shell.nix { inherit pkgs; };
+        };
+      };
   }
 )

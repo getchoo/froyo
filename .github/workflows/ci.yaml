@@ -7,10 +7,17 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
-    name: Test
+  release:
+    name: Build release.nix (${{ matrix.target }})
 
     runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-linux
 
     steps:
       - name: Checkout repository
@@ -20,10 +27,14 @@ jobs:
         uses: cachix/install-nix-action@91a071959513ca103b54280ac0bef5b825791d4d # v31
 
       - name: Run tests
+        env:
+          TARGET: ${{ matrix.target }}
         run: |
           nix build \
-            --file release.nix \
             --no-link \
             --print-build-logs \
             --print-out-paths \
-            --show-trace >> "$GITHUB_STEP_SUMMARY"
+            --show-trace \
+            --file release.nix \
+            "outputs.perTarget.$SYSTEM" \
+            >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,8 @@
+version = 1
+
+[[annotations]]
+path = "**"
+SPDX-FileCopyrightText = [
+	"2025 Seth Flynn <getchoo@tuta.io>"
+]
+SPDX-License-Identifier = "MIT"
