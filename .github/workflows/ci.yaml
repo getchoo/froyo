@@ -36,5 +36,5 @@ jobs:
             --print-out-paths \
             --show-trace \
             --file release.nix \
-            "outputs.perTarget.$SYSTEM" \
+            "outputs.perTarget.$TARGET" \
             >> "$GITHUB_STEP_SUMMARY"

@@ -60,8 +60,7 @@ import ./default.nix { } (
 
           # Make sure our example works too
           example-hello =
-            ((import ./example/default.nix).extend { inherit (config) inputs; })
-            .outputs.perTarget.${name}.hello;
+            (import ./example/default.nix { inherit (config) inputs; }).outputs.perTarget.${name}.hello;
 
           shell = import ./shell.nix { inherit pkgs; };
         };
