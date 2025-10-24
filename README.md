@@ -62,6 +62,50 @@ You can then build this `hello` package:
 $ nix-build --attr outputs.perTarget.x86_64-linux.hello
 ```
 
+### With flakes
+
+`froyo` also works with flakes!
+
+```nix
+{
+  inputs = {
+    nixpkgs.url = "https://nixpkgs.dev/channel/nixos-unstable";
+    froyo.url = "github:getchoo/froyo";
+  };
+
+  outputs =
+    inputs:
+
+    let
+      inherit (inputs.froyo.lib) new toStandardOutputs;
+
+      result = new { inherit inputs; } {
+        perTarget =
+          { pkgs, ... }:
+
+          {
+            outputs = {
+              packages = { inherit (pkgs) hello; };
+            };
+          };
+      };
+    in
+
+    # This exports everything from `outputs` as flake outputs.
+    # Then, it transforms `perTarget.<system>.<attr>` attributes into
+    # `<attr>.<system>` - like the flake schema expects
+    #
+    # It also re-exports the entire froyo project as the output `froyo`
+    toStandardOutputs result;
+}
+```
+
+You can then use this like any other flake:
+
+```console
+$ nix build '.#hello'
+```
+
 ## Concepts
 
 ### Inputs and Outputs
