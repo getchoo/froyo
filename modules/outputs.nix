@@ -2,7 +2,7 @@
 
 let
   outputsSubmodule = {
-    freeformType = lib.types.lazyAttrsOf lib.types.unspecified;
+    freeformType = lib.types.lazyAttrsOf lib.types.raw;
   };
 in
 
